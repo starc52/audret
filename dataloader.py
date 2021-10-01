@@ -12,59 +12,35 @@ from PIL import Image
 random.seed(0)
 
 
-class MultiNegSpeakerLoader(Dataset):
+class simpleDataLoader(Dataset):
 
-	def __init__(
-			self,
-			face_frames_root,
-			speaker_embed_root,
-			split='train',
-			num_speakers=5
-		):
-
-		self.face_frames_root = face_frames_root
-		self.speaker_embed_root = speaker_embed_root
-		self.num_speakers = num_speakers
-		self.samples_path = []
+	def __init__(self, root, split='train'):
+		self.root = root
 
 		missing = 0
-		speaker_list = os.listdir(speaker_embed_root)
-		
+		speaker_list = sorted(os.listdir(root)) #/scratch/dev/VoxCeleb2/dev/mp4
+		self.samples_path=[]
 		# if split=='inference':
 		# 	print("Inference on 20 speakers")
 		# 	speaker_list = speaker_list[:20]
 
 		for i, speaker_id in enumerate(speaker_list):
-			speaker_id_path = join(speaker_embed_root, speaker_id)
+			speaker_id_path = join(root, speaker_id)
 
-			for _url in os.listdir(speaker_id_path):
+			for _url in sorted(os.listdir(speaker_id_path)):
 				url_path = join(speaker_id_path, _url)
-				for embed_path in os.listdir(url_path):
+				listOfImages=[f for f in os.listdir(url_path) if os.path.isfile(join(url_path, f)) and f[-4:]==".npy"]
+				for embed_path in sorted(listOfImages):
 					speaker_arr = []
 
-					if not os.path.exists(join(face_frames_root, speaker_id, _url, embed_path)):
+					if not os.path.isdir(join(root, speaker_id, _url, embed_path[:-4])):
 						missing+=1
 						continue
-					speaker_arr.append(join(url_path, embed_path))
-
-					for _ in range(self.num_speakers-1):
-						while True:
-							rand_idx = random.randint(0, len(speaker_list)-1)
-							if rand_idx!=i:
-								random_speaker = speaker_list[rand_idx]
-								_instances = glob(join(speaker_embed_root, random_speaker, '*/*.npy'))
-								assert len(_instances)!=0
-								speaker_arr.append(_instances[random.randint(0, len(_instances) - 1)])
-								break
-
-					assert len(speaker_arr)==self.num_speakers
-
-					random.shuffle(speaker_arr)
-					# print(speaker_arr, join(url_path, embed_path), speaker_arr.index(join(url_path, embed_path)))
+					_instances = glob(join(url_path, '*/*.npy'))
+					speaker_arr.append(_instances[random.randint(0, len(_instances)-1)])
 					_dic =  {
-						'face_frame' : join(face_frames_root, speaker_id, _url, embed_path),
-						'speaker_list' : speaker_arr,
-						'label' : speaker_arr.index(join(url_path, embed_path)) 
+						'face_embed' : join(root, speaker_id, _url, embed_path),
+						'speaker_embed' : speaker_arr[0]
 					}
 					self.samples_path.append(_dic)
 
@@ -81,28 +57,20 @@ class MultiNegSpeakerLoader(Dataset):
 		''' 
 			L2 Normalizing both embeddings
 		'''
-		face_frame_path = self.samples_path[idx]['face_frame']
-		speaker_embed_list = self.samples_path[idx]['speaker_list']
-		label = self.samples_path[idx]['label']
+		face_embed_path = self.samples_path[idx]['face_embed']
+		speaker_embed_path = self.samples_path[idx]['speaker_embed']
 
-		#face_embedding = np.load(face_embedding_path).reshape(-1, )
-		#face_embedding = face_embedding / np.linalg.norm(face_embedding)
+		face_embedding = np.load(face_embed_path).reshape(-1, )
+		face_embedding = face_embedding / np.linalg.norm(face_embedding)
 
-		#face_embedding = torch.from_numpy(face_embedding)
+		face_embedding = torch.from_numpy(face_embedding)
 
+		speaker_embedding = np.load(speaker_embed_path).reshape(-1, )
+		speaker_embedding = speaker_embedding / np.linalg.norm(speaker_embedding)
 
-		speaker_embeddings = []
+		speaker_embedding = torch.from_numpy(speaker_embedding)
 
-		for sp in speaker_embed_list:
-			speaker_embedding = np.load(sp).reshape(-1, )
-			speaker_embedding = speaker_embedding / np.linalg.norm(speaker_embedding)
-
-			speaker_embeddings.append(speaker_embedding)
-
-		speaker_embeddings = np.array(speaker_embeddings)
-		speaker_embeddings = torch.from_numpy(speaker_embeddings)
-
-		return face_frame, speaker_embeddings, label
+		return face_embedding, speaker_embedding
 
 
 class ShuffledPositiveUtteranceEmbeddingLoader(Dataset):

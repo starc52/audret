@@ -198,6 +198,7 @@ class CompleteDistillationModel(nn.Module):
 
     def __init__(self):
         super(CompleteDistillationModel, self).__init__()
+        self.training=True
         self.teacher_model = FaceNetVGGFaceModels(teach_model="vggface2", arch_type="senet")
         self.student_model = SmallDistilledModel(embedding_dim=EMBEDDING_DIM)
         for param in self.teacher_model.parameters():
