@@ -23,20 +23,18 @@ from datetime import datetime
 random.seed(0)
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--num_epochs',default=30, type=int)
-parser.add_argument('--lr',default=1e-4, type=float)
-parser.add_argument('--batch_size',default=32, type=int)
+parser.add_argument('--num_epochs',default=50, type=int)
+parser.add_argument('--batch_size',default=256, type=int)
 parser.add_argument('--alpha',default=0.6, type=float)
 parser.add_argument('--log_interval',default=20, type=int)
-parser.add_argument('--no_workers',default=10, type=int)
+parser.add_argument('--no_workers',default=250, type=int)
 parser.add_argument('--log_path',default='/home/starc52/LearnablePINs/train_log_'+str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))+"/", type=str)
-parser.add_argument('--checkpoint_path',default="/scratch/starc52/checkpoints/", type=str)
-parser.add_argument('--root',default='/ssd_scratch/cvit/samyak/', type=str)
-parser.add_argument('--margin',default=0.6, type=float)
+parser.add_argument('--checkpoint_path',default="/ssd_scratch/cvit/starc52/LPscheckpoints/", type=str)
+parser.add_argument('--root',default='/ssd_scratch/cvit/starc52/VoxCeleb2/dev/mp4/', type=str)
 
 args = parser.parse_args()
 print(args)
-
+os.makedirs(args.log_path, exist_ok=True)
 os.makedirs(args.checkpoint_path, exist_ok=True)
 
 ######################################################################
@@ -67,8 +65,8 @@ model = model.to(device)
 if torch.cuda.device_count() > 1:
     model = nn.DataParallel(model)
 
-for epoch_num in range(args.num_epochs):
-    for iter_num, (face, audio) in tqdm(enumerate(trainloader)):
+for epoch_num in tqdm(range(args.num_epochs)):
+    for iter_num, (face, audio) in enumerate(trainloader):
         step_num = epoch_num * len(trainloader) + iter_num
         face, audio = face.to(device, non_blocking=True), audio.to(device, non_blocking=True)
 

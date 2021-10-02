@@ -54,7 +54,7 @@ class Evaluation():
             for _url in sorted(os.listdir(_id_path)):
                 _url_path = join(_id_path,_url)
                 listOfDirs=[f for f in os.listdir(_url_path) if os.path.isdir(join(_url_path, f))]
-                for dir in sorted(os.listdir(listOfDirs)):
+                for dir in sorted(listOfDirs):
                     emb_dir = join(_url_path,dir)
                     queries.append(join(emb_dir, random.choice(sorted(os.listdir(emb_dir)))))
         random.shuffle(queries)
@@ -86,7 +86,8 @@ class Evaluation():
         self.queries = np.array(queries[0:self.num_queries])
         self.galleries = np.array(final_gallery[0:self.num_queries])
         self.answer = np.array([self.gallery_size-1]*self.num_queries)
-
+        # print("self.queries", self.queries)
+        # print("self.galleries", self.galleries)
         print("Num queries : %d"%(len(self.queries)))
         print("Gallery Size : %d"%(self.galleries.shape[1]))
         pass
@@ -100,12 +101,12 @@ class Evaluation():
         for _idx, query in enumerate(tqdm(self.queries[0:test_samples])):
             distances=[]
             for toMatch in self.galleries[_idx]:
-                face_emb, audio_emb=self.embedder.get_embedding(input_path_pair=(query, toMatch))
+                face_emb, audio_emb=self.embedder.get_embedding(input_path_pair=(toMatch, query))
                 distances.append(self.distance(face_emb, audio_emb))
             result.append(np.argmin(distances))    
             
         result = np.array(result)
-        r = len(np.where(result==self.answer[0:test_samples]))
+        r = len(np.where(result==self.answer[0:test_samples])[0])
         accuracy = r/test_samples
         print("Identification Accuracy : %.4f"%(accuracy))
         return accuracy
@@ -118,7 +119,7 @@ class GetEmbeddings():
 
         self.learnable_pins_model = learnable_pins_model 
         self.learnable_pins_model.to(self.device)
-        self.learnable_pins_model.test()
+        # self.learnable_pins_model.test()
         self.learnable_pins_model.eval()
         
     def get_embedding(self, input_path_pair=None, emb=None):
@@ -134,17 +135,20 @@ class GetEmbeddings():
         audio_emb = torch.from_numpy(audio_emb).unsqueeze(0)
         audio_emb = audio_emb.to(self.device)
         with torch.no_grad():
-            res_face_emb, res_audio_emb = self.learnable_pins_model((face_emb, audio_emb))
+            res_face_emb, res_audio_emb = self.learnable_pins_model(face_emb, audio_emb)
         res_audio_emb = res_audio_emb.cpu().numpy().reshape(-1)
         res_face_emb = res_face_emb.cpu().numpy().reshape(-1)
 
         return res_face_emb, res_audio_emb
 
 if __name__ == '__main__':
-    test_root = "/scratch/starc52/VoxCeleb2/test/mp4/"
+    test_root = "/ssd_scratch/cvit/starc52/VoxCeleb2/test/mp4/"
 
     model = LearnablePINSenetVggVox256()
-    model.load_state_dict(torch.load(join('/scratch/starc52/checkpoints','model_e18.pth')))
+    model.test()
+    if torch.cuda.device_count() > 1:
+        model = nn.DataParallel(model)
+    model.load_state_dict(torch.load(join('/ssd_scratch/cvit/starc52/LPscheckpoints','model_e1.pth'))['model_state_dict'])
 
     embedder = GetEmbeddings(learnable_pins_model=model)
 
@@ -162,7 +166,8 @@ if __name__ == '__main__':
     plt.ylabel('Identification Accuracy')
     plt.title('1:N F-V matching')
     plt.grid()
-    plt.show()
+    plt.savefig('/home/starc52/audret/retrieve_graph_normal.png')
+    # plt.show()
 
     
 

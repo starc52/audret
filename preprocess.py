@@ -39,37 +39,21 @@ class VGGFace2Model(nn.Module):
 		super(VGGFace2Model, self).__init__()
 		print(arch_type)
 		if arch_type=='resnet':
-			self.backbone = resnet50('/home/starc52/Recode/resnet.pth')
-			# self.backbone.load_state_dict(torch.load('/home/starc52/Recode/resnet.pt'))
+			self.backbone = resnet50('/home/starc52/audret/resnet.pth')
 		else:
-			self.backbone = senet50('/home/starc52/Recode/senet.pth')
-			# self.backbone.load_state_dict(torch.load('/home/samyak/AudioVisual/ImageFeatureExtractor/senet.pt'))
-
-			# to run from tbbt_eval
-			# self.backbone.load_state_dict(torch.load('..\\ImageFeatureExtractor\\senet.pt'))
-			# self.backbone.load_state_dict(torch.load('.\\ImageFeatureExtractor\\senet.pt'))
-
-			# to run from ImageFeatureExtractor
-			# self.backbone.load_state_dict(torch.load('/home/starc52/Recode/senet.pt')) 
+			self.backbone = senet50('/home/starc52/audret/senet.pth')
 		
 		print("Weights Loaded!")
 
 		for param in self.backbone.parameters():
-			param.requires_grad = True
-			# param.requires_grad = False
-
-		self.fc = nn.Sequential(
-			nn.Linear(2048, embedding_dim),
-			nn.ReLU(inplace=True),
-			L2Norm()
-		)
-
+			# param.requires_grad = True
+			param.requires_grad = False
 
 	def forward(self, x):
 		batch_size = x.size(0)
 		x = self.backbone(x)[1]
 		x = x.view(batch_size, -1)
-		x = self.fc(x)
+		# x = self.fc(x)
 		
 		return x
 
@@ -83,19 +67,19 @@ class FaceFeatureExtractor(nn.Module):
 		self.backbone = InceptionResnetV1(pretrained='vggface2')
 
 		for param in self.backbone.parameters():
-			param.requires_grad = True
+			param.requires_grad = False
 
-		self.fc = nn.Sequential(
-			nn.Linear(512, embedding_dim),
-			nn.ReLU(inplace=True)
-		)
+		# self.fc = nn.Sequential(
+		# 	nn.Linear(512, embedding_dim),
+		# 	nn.ReLU(inplace=True)
+		# )
 		# self.activation = nn.Sigmoid()
 
 	def forward(self, x):
 		x = self.backbone(x)
-		x = self.fc(x)
-		x = x / torch.norm(x, dim=1, keepdim=True)
-		# x = self.activation(x)
+		# x = self.fc(x)
+		# x = x / torch.norm(x, dim=1, keepdim=True)
+		# # x = self.activation(x)
 		
 		return x
 
@@ -138,7 +122,7 @@ class AudioInference():
 
 		self.model=VGGM(1251)
 		# self.model.load_state_dict(torch.load("../VGGVox-PyTorch-master/models/VGGM300_BEST_140_81.99.pth", map_location=device))
-		self.model.load_state_dict(torch.load("/home/starc52/Recode/models/VGGM300_BEST_140_81.99.pth", map_location=self.device))
+		self.model.load_state_dict(torch.load("/home/starc52/audret/models/VGGM300_BEST_140_81.99.pth", map_location=self.device))
 		self.model.to(self.device)
 		print("VggVox model loaded")
 		self.model.eval()

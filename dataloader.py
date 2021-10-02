@@ -23,7 +23,7 @@ class simpleDataLoader(Dataset):
 		# if split=='inference':
 		# 	print("Inference on 20 speakers")
 		# 	speaker_list = speaker_list[:20]
-
+		print("Starting dataloading")
 		for i, speaker_id in enumerate(speaker_list):
 			speaker_id_path = join(root, speaker_id)
 
@@ -33,11 +33,15 @@ class simpleDataLoader(Dataset):
 				for embed_path in sorted(listOfImages):
 					speaker_arr = []
 
-					if not os.path.isdir(join(root, speaker_id, _url, embed_path[:-4])):
+					if not os.path.isdir(join(root, speaker_id, _url, embed_path[:-4])) or len(os.listdir(join(root, speaker_id, _url, embed_path[:-4])))==0:
 						missing+=1
 						continue
 					_instances = glob(join(url_path, '*/*.npy'))
-					speaker_arr.append(_instances[random.randint(0, len(_instances)-1)])
+					try:
+						speaker_arr.append(_instances[random.randint(0, len(_instances)-1)])
+					except:
+						print(url_path)
+						print("instances", _instances)
 					_dic =  {
 						'face_embed' : join(root, speaker_id, _url, embed_path),
 						'speaker_embed' : speaker_arr[0]
@@ -73,159 +77,159 @@ class simpleDataLoader(Dataset):
 		return face_embedding, speaker_embedding
 
 
-class ShuffledPositiveUtteranceEmbeddingLoader(Dataset):
-	''' Add speaker centroid, generate all positive pairs and add correspondance labels '''
-	def __init__(
-			self,
-			face_embed_root,
-			speaker_embed_root,
-			split='train'
-		):
+# class ShuffledPositiveUtteranceEmbeddingLoader(Dataset):
+# 	''' Add speaker centroid, generate all positive pairs and add correspondance labels '''
+# 	def __init__(
+# 			self,
+# 			face_embed_root,
+# 			speaker_embed_root,
+# 			split='train'
+# 		):
 
-		self.face_embed_root = face_embed_root
-		self.speaker_embed_root = speaker_embed_root
-		self.samples_path = []
+# 		self.face_embed_root = face_embed_root
+# 		self.speaker_embed_root = speaker_embed_root
+# 		self.samples_path = []
 
-		missing = 0
-		speaker_list = os.listdir(speaker_embed_root)
+# 		missing = 0
+# 		speaker_list = os.listdir(speaker_embed_root)
 		
-		# if split=='inference':
-		# 	print("Inference on 20 speakers")
-		# 	speaker_list = speaker_list[:20]
+# 		# if split=='inference':
+# 		# 	print("Inference on 20 speakers")
+# 		# 	speaker_list = speaker_list[:20]
 
-		for speaker_id in speaker_list:
-			speaker_id_path = join(speaker_embed_root, speaker_id)
-			speaker_arr = []
-			face_arr = []
-			idx = []
+# 		for speaker_id in speaker_list:
+# 			speaker_id_path = join(speaker_embed_root, speaker_id)
+# 			speaker_arr = []
+# 			face_arr = []
+# 			idx = []
 
-			for _url in os.listdir(speaker_id_path):
-				url_path = join(speaker_id_path, _url)
-				for embed_path in os.listdir(url_path):
-					if not os.path.exists(join(face_embed_root, speaker_id, _url, embed_path)):
-						missing+=1
-						continue
-
-
-					speaker_arr.append(join(url_path, embed_path))
-					face_arr.append(join(self.face_embed_root, speaker_id, _url, embed_path))
-
-			idx = np.arange(0, len(speaker_arr))
-
-			neg_flag = 0
-			diff = np.arange(0, len(speaker_arr))
-			while np.sum(np.where(diff==0)) > 0:
-			    random.shuffle(idx)
-			    true_indices = np.arange(0,len(speaker_arr))
-			    diff = true_indices - idx
+# 			for _url in os.listdir(speaker_id_path):
+# 				url_path = join(speaker_id_path, _url)
+# 				for embed_path in os.listdir(url_path):
+# 					if not os.path.exists(join(face_embed_root, speaker_id, _url, embed_path)):
+# 						missing+=1
+# 						continue
 
 
-			for _idx, face in enumerate(face_arr):
-				_dic =  {
-					'face_embedding' : face,
-					'speaker_embedding' : speaker_arr[idx[_idx]],
-					'_id' : 'dummy path' 
-				}
-				self.samples_path.append(_dic)
+# 					speaker_arr.append(join(url_path, embed_path))
+# 					face_arr.append(join(self.face_embed_root, speaker_id, _url, embed_path))
+
+# 			idx = np.arange(0, len(speaker_arr))
+
+# 			neg_flag = 0
+# 			diff = np.arange(0, len(speaker_arr))
+# 			while np.sum(np.where(diff==0)) > 0:
+# 			    random.shuffle(idx)
+# 			    true_indices = np.arange(0,len(speaker_arr))
+# 			    diff = true_indices - idx
 
 
-		print("Missing %d, Total count %d, Split: %s"%(missing, len(self.samples_path), split))
-
-		if(split=='train'):
-		    random.shuffle(self.samples_path)
-
-	def __len__(self):
-		return len(self.samples_path)
-
-	def __getitem__(self, idx):
-		''' 
-			L2 Normalizing both embeddings
-		'''
-		face_embedding_path = self.samples_path[idx]['face_embedding']
-		speaker_embedding_path = self.samples_path[idx]['speaker_embedding']
-		_id = self.samples_path[idx]['_id']
-
-		face_embedding = np.load(face_embedding_path).reshape(-1, )
-		speaker_embedding = np.load(speaker_embedding_path)
-
-		face_embedding = face_embedding / np.linalg.norm(face_embedding)
-		speaker_embedding = speaker_embedding / np.linalg.norm(speaker_embedding)
-
-		face_embedding = torch.from_numpy(face_embedding)
-		speaker_embedding = torch.from_numpy(speaker_embedding)
-
-		return face_embedding, speaker_embedding, _id
+# 			for _idx, face in enumerate(face_arr):
+# 				_dic =  {
+# 					'face_embedding' : face,
+# 					'speaker_embedding' : speaker_arr[idx[_idx]],
+# 					'_id' : 'dummy path' 
+# 				}
+# 				self.samples_path.append(_dic)
 
 
+# 		print("Missing %d, Total count %d, Split: %s"%(missing, len(self.samples_path), split))
 
-class UtteranceEmbeddingLoader(Dataset):
-	''' Add speaker centroid, generate all positive pairs and add correspondance labels '''
-	def __init__(
-			self,
-			face_embed_root,
-			speaker_embed_root,
-			split='train'
-		):
+# 		if(split=='train'):
+# 		    random.shuffle(self.samples_path)
 
-		self.face_embed_root = face_embed_root
-		self.speaker_embed_root = speaker_embed_root
-		self.samples_path = []
+# 	def __len__(self):
+# 		return len(self.samples_path)
 
-		missing = 0
-		speaker_list = os.listdir(speaker_embed_root)
-		if split=='inference':
-			print("Inference on 20 speakers")
-			speaker_list = speaker_list[:20]
+# 	def __getitem__(self, idx):
+# 		''' 
+# 			L2 Normalizing both embeddings
+# 		'''
+# 		face_embedding_path = self.samples_path[idx]['face_embedding']
+# 		speaker_embedding_path = self.samples_path[idx]['speaker_embedding']
+# 		_id = self.samples_path[idx]['_id']
 
-		for speaker_id in speaker_list:
-			speaker_id_path = join(speaker_embed_root, speaker_id)
-			for _url in os.listdir(speaker_id_path):
-				url_path = join(speaker_id_path, _url)
-				for embed_path in os.listdir(url_path):
-					if not os.path.exists(join(face_embed_root, speaker_id, _url, embed_path)):
-						missing+=1
-						continue
+# 		face_embedding = np.load(face_embedding_path).reshape(-1, )
+# 		speaker_embedding = np.load(speaker_embedding_path)
 
-					_dic =  {
-						'face_embedding' : join(self.face_embed_root, speaker_id, _url, embed_path),
-						'speaker_embedding' : join(url_path, embed_path),
-						'_id' : embed_path.split('.npy')[0] 
-					}
-					self.samples_path.append(_dic)
+# 		face_embedding = face_embedding / np.linalg.norm(face_embedding)
+# 		speaker_embedding = speaker_embedding / np.linalg.norm(speaker_embedding)
 
-		print("Missing %d, Total count %d, Split: %s"%(missing, len(self.samples_path), split))
+# 		face_embedding = torch.from_numpy(face_embedding)
+# 		speaker_embedding = torch.from_numpy(speaker_embedding)
 
-		if(split=='train'):
-		    random.shuffle(self.samples_path)
-
-	def __len__(self):
-		return len(self.samples_path)
-
-	def __getitem__(self, idx):
-		''' 
-			L2 Normalizing both embeddings
-		'''
-		face_embedding_path = self.samples_path[idx]['face_embedding']
-		speaker_embedding_path = self.samples_path[idx]['speaker_embedding']
-		_id = self.samples_path[idx]['_id']
-
-		face_embedding = np.load(face_embedding_path).reshape(-1, )
-		speaker_embedding = np.load(speaker_embedding_path)
-
-		face_embedding = face_embedding / np.linalg.norm(face_embedding)
-		speaker_embedding = speaker_embedding / np.linalg.norm(speaker_embedding)
-
-		face_embedding = torch.from_numpy(face_embedding)
-		speaker_embedding = torch.from_numpy(speaker_embedding)
-
-		return face_embedding, speaker_embedding, _id
+# 		return face_embedding, speaker_embedding, _id
 
 
-# a = UtteranceEmbeddigLoader('/ssd_scratch/cvit/samyak/voxceleb_senet_face_embeddings/train/', '/ssd_scratch/cvit/samyak/vgg_vox_embeddings/train_vgg_vox/')
-# for idx, sample in enumerate(a):
-# 	if idx<10:continue
-# 	else: break
-# 	# print(sample)
+
+# class UtteranceEmbeddingLoader(Dataset):
+# 	''' Add speaker centroid, generate all positive pairs and add correspondance labels '''
+# 	def __init__(
+# 			self,
+# 			face_embed_root,
+# 			speaker_embed_root,
+# 			split='train'
+# 		):
+
+# 		self.face_embed_root = face_embed_root
+# 		self.speaker_embed_root = speaker_embed_root
+# 		self.samples_path = []
+
+# 		missing = 0
+# 		speaker_list = os.listdir(speaker_embed_root)
+# 		if split=='inference':
+# 			print("Inference on 20 speakers")
+# 			speaker_list = speaker_list[:20]
+
+# 		for speaker_id in speaker_list:
+# 			speaker_id_path = join(speaker_embed_root, speaker_id)
+# 			for _url in os.listdir(speaker_id_path):
+# 				url_path = join(speaker_id_path, _url)
+# 				for embed_path in os.listdir(url_path):
+# 					if not os.path.exists(join(face_embed_root, speaker_id, _url, embed_path)):
+# 						missing+=1
+# 						continue
+
+# 					_dic =  {
+# 						'face_embedding' : join(self.face_embed_root, speaker_id, _url, embed_path),
+# 						'speaker_embedding' : join(url_path, embed_path),
+# 						'_id' : embed_path.split('.npy')[0] 
+# 					}
+# 					self.samples_path.append(_dic)
+
+# 		print("Missing %d, Total count %d, Split: %s"%(missing, len(self.samples_path), split))
+
+# 		if(split=='train'):
+# 		    random.shuffle(self.samples_path)
+
+# 	def __len__(self):
+# 		return len(self.samples_path)
+
+# 	def __getitem__(self, idx):
+# 		''' 
+# 			L2 Normalizing both embeddings
+# 		'''
+# 		face_embedding_path = self.samples_path[idx]['face_embedding']
+# 		speaker_embedding_path = self.samples_path[idx]['speaker_embedding']
+# 		_id = self.samples_path[idx]['_id']
+
+# 		face_embedding = np.load(face_embedding_path).reshape(-1, )
+# 		speaker_embedding = np.load(speaker_embedding_path)
+
+# 		face_embedding = face_embedding / np.linalg.norm(face_embedding)
+# 		speaker_embedding = speaker_embedding / np.linalg.norm(speaker_embedding)
+
+# 		face_embedding = torch.from_numpy(face_embedding)
+# 		speaker_embedding = torch.from_numpy(speaker_embedding)
+
+# 		return face_embedding, speaker_embedding, _id
+
+
+# # a = UtteranceEmbeddigLoader('/ssd_scratch/cvit/samyak/voxceleb_senet_face_embeddings/train/', '/ssd_scratch/cvit/samyak/vgg_vox_embeddings/train_vgg_vox/')
+# # for idx, sample in enumerate(a):
+# # 	if idx<10:continue
+# # 	else: break
+# # 	# print(sample)
 
 face_dimension = 2048
 speaker_dimension = 4096
