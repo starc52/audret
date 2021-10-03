@@ -29,7 +29,7 @@ class simpleDataLoader(Dataset):
 
 			for _url in sorted(os.listdir(speaker_id_path)):
 				url_path = join(speaker_id_path, _url)
-				listOfImages=[f for f in os.listdir(url_path) if os.path.isfile(join(url_path, f)) and f[-4:]==".npy"]
+				listOfImages=[f for f in os.listdir(url_path) if os.path.isfile(join(url_path, f)) and f[-4:]==".jpg"]
 				for embed_path in sorted(listOfImages):
 					speaker_arr = []
 
@@ -43,8 +43,8 @@ class simpleDataLoader(Dataset):
 						print(url_path)
 						print("instances", _instances)
 					_dic =  {
-						'face_embed' : join(root, speaker_id, _url, embed_path),
-						'speaker_embed' : speaker_arr[0]
+						'face_frame' : join(root, speaker_id, _url, embed_path),
+						'speaker_fft' : speaker_arr[0]
 					}
 					self.samples_path.append(_dic)
 
@@ -61,20 +61,24 @@ class simpleDataLoader(Dataset):
 		''' 
 			L2 Normalizing both embeddings
 		'''
-		face_embed_path = self.samples_path[idx]['face_embed']
-		speaker_embed_path = self.samples_path[idx]['speaker_embed']
+		transformers=transforms.ToTensor()
+		face_frame_path = self.samples_path[idx]['face_frame']
+		speaker_fft_path = self.samples_path[idx]['speaker_fft']
 
-		face_embedding = np.load(face_embed_path).reshape(-1, )
-		face_embedding = face_embedding / np.linalg.norm(face_embedding)
+		face_frame = Image.open(face_frame_path).convert('RGB')
+		face_frame = transformers(face_frame)
+		# face_embedding = face_embedding / np.linalg.norm(face_embedding)
 
-		face_embedding = torch.from_numpy(face_embedding)
+		# face_embedding = torch.from_numpy(face_embedding)
 
-		speaker_embedding = np.load(speaker_embed_path).reshape(-1, )
-		speaker_embedding = speaker_embedding / np.linalg.norm(speaker_embedding)
+		speaker_fft = np.load(speaker_fft_path)
+		speaker_fft = transformers(speaker_fft)
+		# speaker_fft = speaker_fft.unsqueeze(0) # basically this adds batchsize as a dimension
+		# speaker_embedding = speaker_embedding / np.linalg.norm(speaker_embedding)
 
-		speaker_embedding = torch.from_numpy(speaker_embedding)
+		# speaker_embedding = torch.from_numpy(speaker_embedding)
 
-		return face_embedding, speaker_embedding
+		return face_frame, speaker_fft
 
 
 # class ShuffledPositiveUtteranceEmbeddingLoader(Dataset):

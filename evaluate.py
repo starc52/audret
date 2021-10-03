@@ -56,14 +56,15 @@ class Evaluation():
                 listOfDirs=[f for f in os.listdir(_url_path) if os.path.isdir(join(_url_path, f))]
                 for dir in sorted(listOfDirs):
                     emb_dir = join(_url_path,dir)
-                    queries.append(join(emb_dir, random.choice(sorted(os.listdir(emb_dir)))))
+                    if os.listdir(emb_dir):
+                        queries.append(join(emb_dir, random.choice(sorted(os.listdir(emb_dir)))))
         random.shuffle(queries)
         for _idx, query in enumerate(queries[0:self.num_queries]):
             _id = query.split(os.sep)[-4]
             same_flag = 1
 
             while same_flag:
-                answer_set = glob.glob(join(self.root, _id, join('*','*.npy')))
+                answer_set = glob.glob(join(self.root, _id, join('*','*.jpg')))
 
                 answer = random.choice(answer_set)
                 if(not answer.split(os.sep)[-2]==query.split(os.sep)[-3]):
@@ -77,7 +78,7 @@ class Evaluation():
             impostor_gallery = [] 
             
             for imp in diff_speakers[0:self.gallery_size-1]:
-                imp_embeddings = glob.glob(join(self.root,imp,join('*','*.npy')))
+                imp_embeddings = glob.glob(join(self.root,imp,join('*','*.jpg')))
                 impostor_gallery.append(random.choice(imp_embeddings))
                 
             impostor_gallery.append(answer)
@@ -124,31 +125,39 @@ class GetEmbeddings():
         
     def get_embedding(self, input_path_pair=None, emb=None):
         if input_path_pair[0] is not None and input_path_pair[1] is not None:
-            face_emb = np.load(input_path_pair[0]).reshape(-1)
-            audio_emb = np.load(input_path_pair[1]).reshape(-1)
-        face_emb /= np.linalg.norm(face_emb)
-        face_emb = torch.from_numpy(face_emb).unsqueeze(0)
-        face_emb = face_emb.to(self.device)
+            transformToTensor = transforms.ToTensor()         
+            face_frame = Image.open(input_path_pair[0]).convert('RGB')
+            audio_fft = np.load(input_path_pair[1])
+        face_frame = transformToTensor(face_frame).unsqueeze(0)
+        face_frame = face_frame.to(self.device)
+
+        audio_fft = transformToTensor(audio_fft).unsqueeze(0)
+        audio_fft = audio_fft.to(self.device)
+        
+        # face_emb /= np.linalg.norm(face_emb)
+        # face_emb = torch.from_numpy(face_emb).unsqueeze(0)
+        # face_emb = face_emb.to(self.device)
 
 
-        audio_emb /= np.linalg.norm(audio_emb)
-        audio_emb = torch.from_numpy(audio_emb).unsqueeze(0)
-        audio_emb = audio_emb.to(self.device)
+        # audio_emb /= np.linalg.norm(audio_emb)
+        # audio_emb = torch.from_numpy(audio_emb).unsqueeze(0)
+        # audio_emb = audio_emb.to(self.device)
         with torch.no_grad():
-            res_face_emb, res_audio_emb = self.learnable_pins_model(face_emb, audio_emb)
+            res_face_emb, res_audio_emb = self.learnable_pins_model(face_frame, audio_fft)
         res_audio_emb = res_audio_emb.cpu().numpy().reshape(-1)
         res_face_emb = res_face_emb.cpu().numpy().reshape(-1)
 
         return res_face_emb, res_audio_emb
 
-if __name__ == '__main__':
-    test_root = "/ssd_scratch/cvit/starc52/VoxCeleb2/test/mp4/"
+
+def run_evaluate(root="/ssd_scratch/cvit/starc52/VoxCeleb2/test/mp4/", model_path=join('/ssd_scratch/cvit/starc52/LPscheckpoints','model_e1.pth')):
+    test_root = root
 
     model = LearnablePINSenetVggVox256()
     model.test()
     if torch.cuda.device_count() > 1:
         model = nn.DataParallel(model)
-    model.load_state_dict(torch.load(join('/ssd_scratch/cvit/starc52/LPscheckpoints','model_e1.pth'))['model_state_dict'])
+    model.load_state_dict(torch.load(model_path)['model_state_dict'])
 
     embedder = GetEmbeddings(learnable_pins_model=model)
 
@@ -160,15 +169,30 @@ if __name__ == '__main__':
         acc = evaluation.evaluate()
         acc_arr.append(acc)
 
-    print(acc_arr)
-    plt.plot(np.arange(0,len(acc_arr))+2,acc_arr,'r-')
-    plt.xlabel('Gallery Size')
-    plt.ylabel('Identification Accuracy')
-    plt.title('1:N F-V matching')
-    plt.grid()
-    plt.savefig('/home/starc52/audret/retrieve_graph_normal.png')
+    return acc_arr
+
+
+def run_multiple_epochs(root="/ssd_scratch/cvit/starc52/VoxCeleb2/test/mp4/", model_paths=[join('/ssd_scratch/cvit/starc52/LPscheckpoints','model_e0.pth'), 
+                                                                                        join('/ssd_scratch/cvit/starc52/LPscheckpoints','model_e10.pth'), 
+                                                                                        join('/ssd_scratch/cvit/starc52/LPscheckpoints','model_e20.pth'), 
+                                                                                        join('/ssd_scratch/cvit/starc52/LPscheckpoints','model_e40.pth'), 
+                                                                                        join('/ssd_scratch/cvit/starc52/LPscheckpoints','model_e49.pth')], 
+                                                                                        labels=["epoch_0", "epoch_10", "epoch_20", "epoch_30", "epoch_40", "epoch_49"]):
+    for idx, path in enumerate(model_paths):
+        acc_arr = run_evaluate(root=root, model_path=path)
+        print(acc_arr)
+        plt.plot(np.arange(0,len(acc_arr))+2,acc_arr, label=labels[idx])
+        plt.xlabel('Gallery Size')
+        plt.ylabel('Identification Accuracy')
+        plt.title('1:N F-V matching')
+        plt.grid()
+    plt.savefig('/home/starc52/audret/retrieve_'+root.split("/")[-3]+'_graph.png')
     # plt.show()
 
+if __name__ == '__main__':
+    run_multiple_epochs(root="/ssd_scratch/cvit/starc52/VoxCeleb2/dev/mp4/")
+    run_multiple_epochs(root="/ssd_scratch/cvit/starc52/VoxCeleb2/test/mp4/")
+    
     
 
 

@@ -27,8 +27,8 @@ parser.add_argument('--num_epochs',default=50, type=int)
 parser.add_argument('--batch_size',default=256, type=int)
 parser.add_argument('--alpha',default=0.6, type=float)
 parser.add_argument('--log_interval',default=20, type=int)
-parser.add_argument('--no_workers',default=250, type=int)
-parser.add_argument('--log_path',default='/home/starc52/LearnablePINs/train_log_'+str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))+"/", type=str)
+parser.add_argument('--no_workers',default=25, type=int)
+parser.add_argument('--log_path',default='/home/starc52/LearnablePINs/train_log_'+str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))+"/", type=str)
 parser.add_argument('--checkpoint_path',default="/ssd_scratch/cvit/starc52/LPscheckpoints/", type=str)
 parser.add_argument('--root',default='/ssd_scratch/cvit/starc52/VoxCeleb2/dev/mp4/', type=str)
 
@@ -82,8 +82,8 @@ for epoch_num in tqdm(range(args.num_epochs)):
         TBoard.add_scalar('Train/Loss', loss.item(), step_num)
         TBoard.add_scalar('Train/lr', lr_scheduler.get_last_lr()[0], step_num)
         TBoard.add_scalar('Train/tau', tau_scheduler.get_tau(), step_num)
-        TBoard.add_histogram('teacher_images', positive_pairs[0], step_num)
-        TBoard.add_histogram('student_images', positive_pairs[1], step_num)
+        # TBoard.add_histogram('teacher_images', positive_pairs[0], step_num)
+        # TBoard.add_histogram('student_images', positive_pairs[1], step_num)
 
     torch.save({
         'epoch':epoch_num,

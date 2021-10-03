@@ -79,6 +79,7 @@ def preprocess(audio, buckets=None, sr=16000, Ws=25, Ss=10, alpha=0.97):
     rsize=max(i for i in buckets if i<=mag.shape[1])
     rstart=(mag.shape[1]-rsize)//2
     #Return truncated spectrograms
+    # print(mag[:,rstart:rstart+rsize].size())
     return mag[:,rstart:rstart+rsize]
 
 

@@ -127,7 +127,7 @@ class AudioInference():
 		# self.model.to(self.device)
 		# print("VggVox model loaded")
 		# self.model.eval()
-		# self.preprocess = preprocess(arch_type=arch_type)
+		# # self.preprocess = preprocess(arch_type=arch_type)
 		
 
 	def get_audio_features(self, audio_path, save_path=None, img=None):
@@ -138,7 +138,6 @@ class AudioInference():
 
 		audio = preprocess(audio).astype(np.float32)
 		audio=np.expand_dims(audio, 2)
-
 		transformers=transforms.ToTensor()
 		audio = transformers(audio)
 		audio = audio.unsqueeze(0)
@@ -187,7 +186,7 @@ class AudioInference():
 		# 		with torch.no_grad():
 		# 			audio_embedding = self.model(audio_temp)
 		# 		audio_embedding = audio_embedding.cpu().numpy()
-		# 		np.save(join(pathToAudio[:-4], "%03d.npy"%idx), audio_embedding)
+		# 		np.save(join(pathToAudio[:-4], "%3d.npy"%idx), audio_embedding)
 		# 		embeddings.append(audio_embedding)
 		# except:
 		# 	print("directory present")
@@ -201,6 +200,8 @@ parser.add_argument('--start_id', default=0, type=int)
 parser.add_argument('--end_id', default=5994, type=int)
 args = parser.parse_args()
 print(args)
+
+# ImageModel = ImageInference(args.model_val_path)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 mtcnn = MTCNN(keep_all=True, device=device)
 AudioModel = AudioInference()
@@ -241,7 +242,8 @@ for speaker_id in tqdm(sorted(os.listdir(args.root))[args.start_id:args.end_id])
 					boxes, _ = mtcnn.detect(frame, landmarks=False)
 					img_file = img_file.cpu().numpy()
 					img_file = img_file[boxes[0][0]:boxes[0][2], boxes[0][1]:boxes[0][3]]
-					transformResize = transforms.Compose([transforms.Resize((224, 224)), 
+					transformResize = transforms.Compose([transforms.Resize((112, 112)),  
+                                                        transforms.Resize((224, 224)), 
 														transforms.ToTensor()])
 					img_file = transformResize(img_file)
 					img_file = img_file.cpu().numpy()
@@ -249,6 +251,14 @@ for speaker_id in tqdm(sorted(os.listdir(args.root))[args.start_id:args.end_id])
 					cv2.imwrite(join(args.root, speaker_id, url, file_name[:-4]+".jpg"), img_file)
 					# face_embedding = ImageModel.get_signature(img_path="", save_path=join(args.root, speaker_id, url, file_name[:-4]+".npy"), img=img_file)
 					os.remove(join(args.root, speaker_id, url, file_name))
+
+					# transformToTensor = transforms.Compose([transforms.ToTensor(), 
+                    #                                         transforms.Resize((112, 112)), 
+                    #                                         transforms.Resize((224, 224))])
+					# # img_file = np.expand_dims(img_file, 2)
+					# img_file = transformToTensor(img_file)
+					# face_embedding = ImageModel.get_signature(img_path="", save_path=join(args.root, speaker_id, url, file_name[:-4]+".npy"), img=img_file)
+					# os.remove(join(args.root, speaker_id, url, file_name))
 				elif file_name[-4:] == ".wav":
 					utteranceEmbedding = AudioModel.split_audio(join(args.root, speaker_id, url, file_name))
 					os.remove(join(args.root, speaker_id, url, file_name))
