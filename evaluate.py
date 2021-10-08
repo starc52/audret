@@ -117,9 +117,10 @@ class GetEmbeddings():
                  learnable_pins_model):
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
         self.learnable_pins_model = learnable_pins_model 
         self.learnable_pins_model.to(self.device)
+        if torch.cuda.device_count() > 1:
+            self.learnable_pins_model = nn.DataParallel(self.learnable_pins_model) 
         # self.learnable_pins_model.test()
         self.learnable_pins_model.eval()
         
@@ -186,7 +187,9 @@ def run_multiple_epochs(root="/ssd_scratch/cvit/starc52/VoxCeleb2/test/mp4/", mo
         plt.ylabel('Identification Accuracy')
         plt.title('1:N F-V matching')
         plt.grid()
+    plt.legend()
     plt.savefig('/home/starc52/audret/retrieve_'+root.split("/")[-3]+'_graph.png')
+    plt.clf()
     # plt.show()
 
 if __name__ == '__main__':
@@ -194,5 +197,4 @@ if __name__ == '__main__':
     run_multiple_epochs(root="/ssd_scratch/cvit/starc52/VoxCeleb2/test/mp4/")
     
     
-
 

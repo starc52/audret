@@ -18,6 +18,7 @@ import librosa
 from vggm import VGGM
 from resnet import *
 from senet import *
+import traceback
 from facenet_pytorch import InceptionResnetV1
 from facenet_pytorch import MTCNN
 from signal_utils import preprocess
@@ -202,7 +203,7 @@ parser.add_argument('--end_id', default=5994, type=int)
 args = parser.parse_args()
 print(args)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-mtcnn = MTCNN(keep_all=True, device=device)
+mtcnn = MTCNN(post_process=False, keep_all=True, device=device)
 AudioModel = AudioInference()
 
 criterion_kldiv = nn.KLDivLoss()
@@ -219,40 +220,40 @@ for speaker_id in tqdm(sorted(os.listdir(args.root))[args.start_id:args.end_id])
 		for file_name in sorted(os.listdir(join(args.root, speaker_id, url))):
 			try:
 				if file_name[-4:] == ".mp4":
-					# print(file_name)
 					cap = cv2.VideoCapture(join(args.root, speaker_id, url, file_name))
-					
+					transformToTensor = transforms.ToTensor()					
 					ret, img_file=cap.read()
-					count=0
-					while cap.isOpened():
-						ret, frame = cap.read()
-						img_file=np.array(frame, copy=True)
-						if ret and random.choice([0, 0, 0, 0, 1]):
-							img_file = np.array(frame, copy=True)
-							cap.release()
-							break
-						elif not ret:
-							cap.release()
-							break
-						count+=1
-						cap.set(1, count)
-					transformToTensor = transforms.ToTensor()
-					img_file = transformToTensor(img_file)
-					boxes, _ = mtcnn.detect(frame, landmarks=False)
-					img_file = img_file.cpu().numpy()
-					img_file = img_file[boxes[0][0]:boxes[0][2], boxes[0][1]:boxes[0][3]]
-					transformResize = transforms.Compose([transforms.Resize((224, 224)), 
-														transforms.ToTensor()])
-					img_file = transformResize(img_file)
-					img_file = img_file.cpu().numpy()
-
+					faces = mtcnn(img_file)
+					if faces is None:
+						count=0
+						while cap.isOpened():
+							ret, frame = cap.read()
+					
+							img_file=np.array(frame, copy=True)
+							if not ret:
+								break
+							faces = mtcnn(img_file)
+							if ret and faces is not None:
+								cap.release()
+								break
+							count+=1
+							cap.set(1, count)
+					if faces is None:
+						print("No face detected for : %s" % join(args.root, speaker_id, url, file_name))
+						os.remove(join(args.root, speaker_id, url, file_name))
+						continue
+					img_file = faces[0]
+					img_file = img_file.permute(1, 2, 0).numpy()
+					img_file  = cv2.resize(img_file, (224, 224))
 					cv2.imwrite(join(args.root, speaker_id, url, file_name[:-4]+".jpg"), img_file)
-					# face_embedding = ImageModel.get_signature(img_path="", save_path=join(args.root, speaker_id, url, file_name[:-4]+".npy"), img=img_file)
 					os.remove(join(args.root, speaker_id, url, file_name))
+					print("Processed filename: %s"% join(args.root, speaker_id, url, file_name))
+
 				elif file_name[-4:] == ".wav":
 					utteranceEmbedding = AudioModel.split_audio(join(args.root, speaker_id, url, file_name))
 					os.remove(join(args.root, speaker_id, url, file_name))
+					print("Processed filename: %s"% join(args.root, speaker_id, url, file_name))
 			except:
-				continue
-
+				print(traceback.format_exc())
+				continue			
 print(listOfIdentities)

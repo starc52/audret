@@ -8,6 +8,8 @@ from torchvision import transforms
 from glob import glob
 from facenet_pytorch import fixed_image_standardization
 from PIL import Image
+import traceback
+import sys
 
 random.seed(0)
 
@@ -70,8 +72,13 @@ class simpleDataLoader(Dataset):
 		# face_embedding = face_embedding / np.linalg.norm(face_embedding)
 
 		# face_embedding = torch.from_numpy(face_embedding)
-
-		speaker_fft = np.load(speaker_fft_path)
+		try:
+			#print(speaker_fft_path)
+			speaker_fft = np.load(speaker_fft_path)
+			#print(speaker_fft)
+		except:
+			print(traceback.format_exc())
+			sys.exit()
 		speaker_fft = transformers(speaker_fft)
 		# speaker_fft = speaker_fft.unsqueeze(0) # basically this adds batchsize as a dimension
 		# speaker_embedding = speaker_embedding / np.linalg.norm(speaker_embedding)

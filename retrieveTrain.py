@@ -24,10 +24,10 @@ random.seed(0)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--num_epochs',default=50, type=int)
-parser.add_argument('--batch_size',default=256, type=int)
+parser.add_argument('--batch_size',default=128, type=int)
 parser.add_argument('--alpha',default=0.6, type=float)
 parser.add_argument('--log_interval',default=20, type=int)
-parser.add_argument('--no_workers',default=25, type=int)
+parser.add_argument('--no_workers',default=40, type=int)
 parser.add_argument('--log_path',default='/home/starc52/LearnablePINs/train_log_'+str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))+"/", type=str)
 parser.add_argument('--checkpoint_path',default="/ssd_scratch/cvit/starc52/LPscheckpoints/", type=str)
 parser.add_argument('--root',default='/ssd_scratch/cvit/starc52/VoxCeleb2/dev/mp4/', type=str)
@@ -95,5 +95,4 @@ for epoch_num in tqdm(range(args.num_epochs)):
     }, os.path.join(CHECKPOINT_PATH, "model_e"+str(epoch_num)+".pth"))
     lr_scheduler.step()
     tau_scheduler.step()
-
 
