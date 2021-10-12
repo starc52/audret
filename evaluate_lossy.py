@@ -115,9 +115,10 @@ class Evaluation():
 
 class GetEmbeddings():
     def __init__(self, 
-                 learnable_pins_model):
+                 learnable_pins_model, loss_factor):
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.loss_factor = loss_factor
         self.learnable_pins_model = learnable_pins_model 
         self.learnable_pins_model.to(self.device)
         if torch.cuda.device_count() > 1:
@@ -127,10 +128,12 @@ class GetEmbeddings():
         
     def get_embedding(self, input_path_pair=None, emb=None):
         if input_path_pair[0] is not None and input_path_pair[1] is not None:
-            transformToTensor = transforms.ToTensor()         
             face_frame = Image.open(input_path_pair[0]).convert('RGB')
             audio_fft = np.load(input_path_pair[1])
+        transformToTensor = transforms.ToTensor()
         img_transform = transforms.Compose([
+			transforms.Resize((int(224 * self.loss_factor), int(224 * self.loss_factor))),
+			transforms.Resize((224, 224)),
             transforms.RandomHorizontalFlip(),
 			transforms.ColorJitter(brightness=0.5, hue=0.3),
 			transforms.ToTensor(),
@@ -157,7 +160,7 @@ class GetEmbeddings():
         return res_face_emb, res_audio_emb
 
 
-def run_evaluate(root="/scratch/starc52/VoxCeleb2/test/mp4/", model_path=join('/ssd_scratch/cvit/starc52/LPscheckpoints','model_e1.pth')):
+def run_evaluate(loss_factor, root="/scratch/starc52/VoxCeleb2/test/mp4/", model_path=join('/ssd_scratch/cvit/starc52/LPscheckpoints_lossy','model_e1.pth')):
     test_root = root
 
     model = LearnablePINSenetVggVox256()
@@ -166,7 +169,7 @@ def run_evaluate(root="/scratch/starc52/VoxCeleb2/test/mp4/", model_path=join('/
         model = nn.DataParallel(model)
     model.load_state_dict(torch.load(model_path)['model_state_dict'])
 
-    embedder = GetEmbeddings(learnable_pins_model=model)
+    embedder = GetEmbeddings(learnable_pins_model=model, loss_factor=loss_factor)
 
 
     acc_arr = []
@@ -179,17 +182,17 @@ def run_evaluate(root="/scratch/starc52/VoxCeleb2/test/mp4/", model_path=join('/
     return acc_arr
 
 
-def run_multiple_epochs(root="/scratch/starc52/VoxCeleb2/", model_path = "/ssd_scratch/cvit/starc52/LPscheckpoints/"):
+def run_multiple_epochs(loss_factor, root="/scratch/starc52/VoxCeleb2/", model_path="/ssd_scratch/cvit/starc52/LPscheckpoints/"):
     listOfPaths = ['test/mp4', 'dev/mp4']
     listOfModels= [os.path.join(model_path, "model_e"+str(num)) for num in range(0, 50)]
     listOfAccuracies={}
     for idx, path in enumerate(tqdm(listOfModels)):
         acc_arr={}
         for pathAdd in listOfPaths:
-            acc_arr[pathAdd.split('/')[0]] = run_evaluate(root=os.path.join(root, pathAdd), model_path=path)
+            acc_arr[pathAdd.split('/')[0]] = run_evaluate(loss_factor=loss_factor, root=os.path.join(root, pathAdd), model_path=path)
             listOfAccuracies[path.split("/")[-1].split('.')[0]] = acc_arr
             print(acc_arr)
-    os.makedirs("/home/starc52/audret/graphs", exist_ok=True)
+    os.makedirs("/home/starc52/audret/graphs/", exist_ok=True)
     for model in listOfAccuracies:
         for dataset in model:
             plt.plot(np.arange(0, len(model[dataset]))+2, model[dataset], label=dataset)
@@ -198,25 +201,16 @@ def run_multiple_epochs(root="/scratch/starc52/VoxCeleb2/", model_path = "/ssd_s
         plt.title('1:N F-V matching')
         plt.grid()
         plt.legend()
-        plt.savefig('/home/starc52/audret/graphs/'+model+'_nor.png')
+        plt.savefig('/home/starc52/audret/graphs/'+model+'_lossy.png')
         plt.clf()
-    # maxList = max(listOfAccuracies, key=lambda x: x[0])
-    # maxPath=[listOfModels[listOfAccuracies.index(maxList)]]
-    # print(list(zip(listOfModels, listOfAccuracies)))
-    # print(list(zip(maxPath, [maxList])))
-    # for idx, path in enumerate(maxPath):
-    #     plt.plot(np.arange(0,len(maxList))+2,maxList, label=path[-7:-4])
-    # plt.xlabel('Gallery Size')
-    # plt.ylabel('Identification Accuracy')
-    # plt.title('1:N F-V matching')
-    # plt.grid()
-    # plt.legend()
-    # plt.savefig('/home/starc52/audret/retrieve_'+root.split("/")[-2]+'_graph.png')
-    # plt.clf()
-    # plt.show()
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--root',default='/scratch/starc52/VoxCeleb2/', type=str)
+parser.add_argument('--loss_factor',default=0.25, type=float)
 args = parser.parse_args()
+
 if __name__ == '__main__':
-    run_multiple_epochs(root=args.root)
+    run_multiple_epochs(loss_factor = args.loss_factor, root=args.root)
+    
+    
 

@@ -68,6 +68,11 @@ class simpleDataLoader(Dataset):
 		speaker_fft_path = self.samples_path[idx]['speaker_fft']
 
 		face_frame = Image.open(face_frame_path).convert('RGB')
+		img_transform = transforms.Compose([
+			transforms.RandomHorizontalFlip(),
+			transforms.ColorJitter(brightness=0.5, hue=0.3),
+			transforms.ToTensor(),
+		])
 		face_frame = transformers(face_frame)
 		# face_embedding = face_embedding / np.linalg.norm(face_embedding)
 
@@ -87,6 +92,85 @@ class simpleDataLoader(Dataset):
 
 		return face_frame, speaker_fft
 
+class simpleDataLoaderLossy(Dataset):
+
+	def __init__(self, loss_factor, root, split='train'):
+		self.root = root
+		self.loss_factor = loss_factor
+		missing = 0
+		speaker_list = sorted(os.listdir(root)) #/scratch/dev/VoxCeleb2/dev/mp4
+		self.samples_path=[]
+		# if split=='inference':
+		# 	print("Inference on 20 speakers")
+		# 	speaker_list = speaker_list[:20]
+		print("Starting dataloading")
+		for i, speaker_id in enumerate(speaker_list):
+			speaker_id_path = join(root, speaker_id)
+
+			for _url in sorted(os.listdir(speaker_id_path)):
+				url_path = join(speaker_id_path, _url)
+				listOfImages=[f for f in os.listdir(url_path) if os.path.isfile(join(url_path, f)) and f[-4:]==".jpg"]
+				for embed_path in sorted(listOfImages):
+					speaker_arr = []
+
+					if not os.path.isdir(join(root, speaker_id, _url, embed_path[:-4])) or len(os.listdir(join(root, speaker_id, _url, embed_path[:-4])))==0:
+						missing+=1
+						continue
+					_instances = glob(join(url_path, '*/*.npy'))
+					try:
+						speaker_arr.append(_instances[random.randint(0, len(_instances)-1)])
+					except:
+						print(url_path)
+						print("instances", _instances)
+					_dic =  {
+						'face_frame' : join(root, speaker_id, _url, embed_path),
+						'speaker_fft' : speaker_arr[0]
+					}
+					self.samples_path.append(_dic)
+
+		print("Missing %d, Total count %d, Split: %s"%(missing, len(self.samples_path), split))
+
+		if(split=='train'):
+		    random.shuffle(self.samples_path)
+
+
+	def __len__(self):
+		return len(self.samples_path)
+
+	def __getitem__(self, idx):
+		''' 
+			L2 Normalizing both embeddings
+		'''
+		transformers=transforms.ToTensor()
+		face_frame_path = self.samples_path[idx]['face_frame']
+		speaker_fft_path = self.samples_path[idx]['speaker_fft']
+
+		face_frame = Image.open(face_frame_path).convert('RGB')
+		img_transform = transforms.Compose([
+			transforms.Resize((int(224*self.loss_factor), int(224*self.loss_factor))),
+			transforms.Resize((224, 224)),
+			transforms.RandomHorizontalFlip(),
+			transforms.ColorJitter(brightness=0.5, hue=0.3),
+			transforms.ToTensor(),
+		])
+		face_frame = img_transform(face_frame)
+		# face_embedding = face_embedding / np.linalg.norm(face_embedding)
+
+		# face_embedding = torch.from_numpy(face_embedding)
+		try:
+			#print(speaker_fft_path)
+			speaker_fft = np.load(speaker_fft_path)
+			#print(speaker_fft)
+		except:
+			print(traceback.format_exc())
+			sys.exit()
+		speaker_fft = transformers(speaker_fft)
+		# speaker_fft = speaker_fft.unsqueeze(0) # basically this adds batchsize as a dimension
+		# speaker_embedding = speaker_embedding / np.linalg.norm(speaker_embedding)
+
+		# speaker_embedding = torch.from_numpy(speaker_embedding)
+
+		return face_frame, speaker_fft
 
 # class ShuffledPositiveUtteranceEmbeddingLoader(Dataset):
 # 	''' Add speaker centroid, generate all positive pairs and add correspondance labels '''

@@ -169,6 +169,7 @@ class AudioInference():
 		slice_end = [i+nsamples_per_window if i+nsamples_per_window<len(audio) else len(audio) for i in slice_start]
 		
 		audios = [audio[slice_start[i]:slice_end[i]] for i in range(len(slice_start))]
+		audios = random.sample(audios, 1)
 		audios_processed = [preprocess(audio).astype(np.float32) for audio in audios]
 		audios_expanded = [np.expand_dims(audio, 2) for audio in audios_processed]
 		try:
