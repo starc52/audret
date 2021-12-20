@@ -134,8 +134,8 @@ class GetEmbeddings():
         img_transform = transforms.Compose([
 			transforms.Resize((int(224 * self.loss_factor), int(224 * self.loss_factor))),
 			transforms.Resize((224, 224)),
-            transforms.RandomHorizontalFlip(),
-			transforms.ColorJitter(brightness=0.5, hue=0.3),
+            # transforms.RandomHorizontalFlip(),
+			# transforms.ColorJitter(brightness=0.5, hue=0.3),
 			transforms.ToTensor(),
 		])
         face_frame = img_transform(face_frame).unsqueeze(0)
@@ -173,8 +173,8 @@ def run_evaluate(loss_factor, root="/scratch/starc52/VoxCeleb2/test/mp4/", model
 
 
     acc_arr = []
-    for i in range(2, 11):
-        evaluation = Evaluation(root=test_root, embedder=embedder,gallery_size=i,num_queries=250)
+    for i in tqdm(range(2, 11)):
+        evaluation = Evaluation(root=test_root, embedder=embedder,gallery_size=i,num_queries=10000)
 
         acc = evaluation.evaluate()
         acc_arr.append(acc)
@@ -184,24 +184,25 @@ def run_evaluate(loss_factor, root="/scratch/starc52/VoxCeleb2/test/mp4/", model
 
 def run_multiple_epochs(loss_factor, root="/scratch/starc52/VoxCeleb2/", model_path="/ssd_scratch/cvit/starc52/LPscheckpoints/"):
     listOfPaths = ['test/mp4', 'dev/mp4']
-    listOfModels= [os.path.join(model_path, "model_e"+str(num)) for num in range(0, 50)]
+    listOfModels= [os.path.join(model_path, "model_e"+str(num)+".pth") for num in range(30, 50)]
     listOfAccuracies={}
     for idx, path in enumerate(tqdm(listOfModels)):
         acc_arr={}
         for pathAdd in listOfPaths:
+            print("set, model:", os.path.join(root, pathAdd), path)
             acc_arr[pathAdd.split('/')[0]] = run_evaluate(loss_factor=loss_factor, root=os.path.join(root, pathAdd), model_path=path)
-            listOfAccuracies[path.split("/")[-1].split('.')[0]] = acc_arr
+            listOfAccuracies[path.replace("/", "-")] = acc_arr
             print(acc_arr)
     os.makedirs("/home/starc52/audret/graphs/", exist_ok=True)
     for model in listOfAccuracies:
         for dataset in model:
-            plt.plot(np.arange(0, len(model[dataset]))+2, model[dataset], label=dataset)
+            plt.plot(np.arange(0, len(listOfAccuracies[model[dataset]]))+2, listOfAccuracies[model[dataset]], label=dataset)
         plt.xlabel('Gallery Size')
         plt.ylabel('Identification Accuracy')
         plt.title('1:N F-V matching')
         plt.grid()
         plt.legend()
-        plt.savefig('/home/starc52/audret/graphs/'+model+'_lossy.png')
+        plt.savefig('/home/starc52/audret/graphs/'+str(model)+'_lossy.png')
         plt.clf()
 
 parser = argparse.ArgumentParser()
@@ -210,7 +211,18 @@ parser.add_argument('--loss_factor',default=0.25, type=float)
 args = parser.parse_args()
 
 if __name__ == '__main__':
-    run_multiple_epochs(loss_factor = args.loss_factor, root=args.root)
+    test_acc=run_evaluate(loss_factor=args.loss_factor, root="/ssd_scratch/cvit/starc52/VoxCeleb2/test/mp4", model_path=join('/ssd_scratch/cvit/starc52/LPscheckpoints/', 'model_e43.pth'))
+    dev_acc=run_evaluate(loss_factor=args.loss_factor, root="/ssd_scratch/cvit/starc52/VoxCeleb2/dev/mp4", model_path=join('/ssd_scratch/cvit/starc52/LPscheckpoints/', 'model_e43.pth'))
+    plt.plot(np.arange(0, len(test_acc))+2, test_acc, label="test compression:0.25")
+    plt.plot(np.arange(0, len(dev_acc))+2, dev_acc, label="dev compression:0.25")
+    plt.xlabel('Gallery Size')
+    plt.ylabel('Identification Accuracy')
+    plt.title('1:N F-V matching')
+    plt.grid()
+    plt.legend()
+    plt.savefig('/home/starc52/audret/graphs/lossy_epoch_43.png')
+    plt.clf()
+    # run_multiple_epochs(loss_factor = args.loss_factor, root=args.root)
     
     
 

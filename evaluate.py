@@ -20,7 +20,7 @@ from torchvision import transforms
 from time import time
 
 # random.seed(0)
-random.seed(time())
+random.seed(0)
 
 class Evaluation():
     def __init__(self, 
@@ -131,8 +131,8 @@ class GetEmbeddings():
             face_frame = Image.open(input_path_pair[0]).convert('RGB')
             audio_fft = np.load(input_path_pair[1])
         img_transform = transforms.Compose([
-            transforms.RandomHorizontalFlip(),
-			transforms.ColorJitter(brightness=0.5, hue=0.3),
+            # transforms.RandomHorizontalFlip(),
+			# transforms.ColorJitter(brightness=0.5, hue=0.3),
 			transforms.ToTensor(),
 		])
         face_frame = img_transform(face_frame).unsqueeze(0)
@@ -170,8 +170,8 @@ def run_evaluate(root="/scratch/starc52/VoxCeleb2/test/mp4/", model_path=join('/
 
 
     acc_arr = []
-    for i in range(2, 11):
-        evaluation = Evaluation(root=test_root, embedder=embedder,gallery_size=i,num_queries=250)
+    for i in tqdm(range(2, 11)):
+        evaluation = Evaluation(root=test_root, embedder=embedder,gallery_size=i,num_queries=1000)
 
         acc = evaluation.evaluate()
         acc_arr.append(acc)
@@ -181,24 +181,25 @@ def run_evaluate(root="/scratch/starc52/VoxCeleb2/test/mp4/", model_path=join('/
 
 def run_multiple_epochs(root="/scratch/starc52/VoxCeleb2/", model_path = "/ssd_scratch/cvit/starc52/LPscheckpoints/"):
     listOfPaths = ['test/mp4', 'dev/mp4']
-    listOfModels= [os.path.join(model_path, "model_e"+str(num)) for num in range(0, 50)]
+    listOfModels= [os.path.join(model_path, "model_e"+str(num)+".pth") for num in range(30, 50)]
     listOfAccuracies={}
     for idx, path in enumerate(tqdm(listOfModels)):
         acc_arr={}
         for pathAdd in listOfPaths:
+            print("set, model:", os.path.join(root, pathAdd), path)
             acc_arr[pathAdd.split('/')[0]] = run_evaluate(root=os.path.join(root, pathAdd), model_path=path)
-            listOfAccuracies[path.split("/")[-1].split('.')[0]] = acc_arr
+            listOfAccuracies[path.replace("/", "-")] = acc_arr
             print(acc_arr)
     os.makedirs("/home/starc52/audret/graphs", exist_ok=True)
     for model in listOfAccuracies:
         for dataset in model:
-            plt.plot(np.arange(0, len(model[dataset]))+2, model[dataset], label=dataset)
+            plt.plot(np.arange(0, len(listOfAccuracies[model[dataset]]))+2, listOfAccuracies[model[dataset]], label=dataset)
         plt.xlabel('Gallery Size')
         plt.ylabel('Identification Accuracy')
         plt.title('1:N F-V matching')
         plt.grid()
         plt.legend()
-        plt.savefig('/home/starc52/audret/graphs/'+model+'_nor.png')
+        plt.savefig('/home/starc52/audret/graphs/'+str(model)+'_nor.png')
         plt.clf()
     # maxList = max(listOfAccuracies, key=lambda x: x[0])
     # maxPath=[listOfModels[listOfAccuracies.index(maxList)]]
@@ -218,5 +219,16 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--root',default='/scratch/starc52/VoxCeleb2/', type=str)
 args = parser.parse_args()
 if __name__ == '__main__':
-    run_multiple_epochs(root=args.root)
+    test_acc=run_evaluate(root="/ssd_scratch/cvit/starc52/VoxCeleb2/test/mp4", model_path=join('/ssd_scratch/cvit/starc52/LPscheckpoints/', 'model_e43.pth'))
+    dev_acc=run_evaluate(root="/ssd_scratch/cvit/starc52/VoxCeleb2/dev/mp4", model_path=join('/ssd_scratch/cvit/starc52/LPscheckpoints/', 'model_e43.pth'))
+    plt.plot(np.arange(0, len(test_acc))+2, test_acc, label="test")
+    plt.plot(np.arange(0, len(dev_acc))+2, dev_acc, label="dev")
+    plt.xlabel('Gallery Size')
+    plt.ylabel('Identification Accuracy')
+    plt.title('1:N F-V matching')
+    plt.grid()
+    plt.legend()
+    plt.savefig('/home/starc52/audret/graphs/epoch_43.png')
+    plt.clf()
+    # run_multiple_epochs(root=args.root)
 

@@ -26,8 +26,9 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--num_epochs',default=50, type=int)
 parser.add_argument('--batch_size',default=160, type=int)
 parser.add_argument('--alpha',default=0.6, type=float)
+parser.add_argument('--lr',default=1e-4, type=float)
 parser.add_argument('--log_interval',default=20, type=int)
-parser.add_argument('--no_workers',default=40, type=int)
+parser.add_argument('--no_workers',default=20, type=int)
 parser.add_argument('--log_path',default='/home/starc52/LearnablePINs/train_log_'+str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))+"/", type=str)
 parser.add_argument('--checkpoint_path',default="/ssd_scratch/cvit/starc52/LPscheckpoints/", type=str)
 parser.add_argument('--root',default='/scratch/starc52/VoxCeleb2/dev/mp4/', type=str)
@@ -56,11 +57,15 @@ LR_LAST = 1e-8
 gamma = 10 ** (np.log10(LR_LAST / LR_INIT) / (args.num_epochs - 1))
 
 optimizer = torch.optim.SGD(model.parameters(), lr = LR_INIT, momentum=0.9, weight_decay=5e-4)
+# lr = args.lr
 lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=gamma)
 tau_scheduler = TauScheduler(lowest=0.3, highest=0.8)
 
 device = torch.device('cuda')
 model = model.to(device)
+# params = list(filter(lambda p: p.requires_grad, model.parameters()))
+# print(params)
+# optimizer = torch.optim.Adam(params, lr)
 
 if torch.cuda.device_count() > 1:
     model = nn.DataParallel(model)
