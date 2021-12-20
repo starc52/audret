@@ -37,45 +37,44 @@ class VGGFace2Model(nn.Module):
 
 class LearnablePINSenetVggVox256(nn.Module):
 
-	def __init__(self, embedding_dim=256, training=True):
+    def __init__(self, embedding_dim=256, training=True):
 
-		super(LearnablePINSenetVggVox256, self).__init__()
-		self.face_model = VGGFace2Model(arch_type='senet')
-		self.face_model.train()
-		self.face_fc = nn.Sequential(
-			nn.Linear(2048, embedding_dim),
-			nn.ReLU(inplace=True),
-			L2Norm()
-		)
-		self.audio_model = VGGM(1251)
-		for param in self.audio_model.parameters():
-			param.requires_grad = True
-		self.audio_model.train()
-		self.audio_fc = nn.Sequential(
-			nn.Linear(4096, embedding_dim),
-			nn.ReLU(inplace=True),
-			L2Norm()
-		)
-		self.training=training
-		self.curr_mining = CurriculumMining()
+        super(LearnablePINSenetVggVox256, self).__init__()
+        self.face_model = VGGFace2Model(arch_type='senet')
+        self.face_model.train()
+        self.face_fc = nn.Sequential(
+            nn.Linear(2048, embedding_dim),
+            nn.ReLU(inplace=True),
+            L2Norm()
+        )
+        self.audio_model = VGGM(1251)
+        self.audio_model.train()
+        self.audio_fc = nn.Sequential(
+            nn.Linear(4096, embedding_dim),
+            nn.ReLU(inplace=True),
+            L2Norm()
+        )
+        self.training=training
+        self.curr_mining = CurriculumMining()
 
-	def test(self):
-		self.training=False
+    def test(self):
+        self.training=False
 
-	def forward(self, face, audio, tau=None):
-		batch_size = face.size(0)
-		face = self.face_model(face)
-		face = self.face_fc(face)
+    def forward(self, face, audio, tau=None):
+        batch_size = face.size(0)
+        face = self.face_model(face)
+        face = self.face_fc(face)
 
-		audio = self.audio_model(audio)
-		audio = self.audio_fc(audio)
-
-		if self.training:
-			positive_pairs = (face, audio)
-			negative_pairs = self.curr_mining(positive_pairs, tau)
-			return positive_pairs, negative_pairs
-		else:
-			return face, audio
+        audio = self.audio_model(audio)
+        audio = self.audio_fc(audio)
+        
+        if self.training:
+            positive_pairs = (face, audio)
+            negative_pairs = self.curr_mining(positive_pairs, tau)
+                
+            return positive_pairs, negative_pairs
+        else:
+            return face, audio
 
 class FaceFeatureExtractor(nn.Module):
 	def __init__(self, 
