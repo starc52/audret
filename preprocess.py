@@ -212,6 +212,8 @@ for speaker_id in tqdm(sorted(os.listdir(args.root))[args.start_id:args.end_id])
     for url in sorted(os.listdir(join(args.root, speaker_id))):
         # os.makedirs(join(args.save_path, speaker_id, url), exist_ok=True)
 #         for file_name in sorted(os.listdir(join(args.root, speaker_id, url))):
+        if not os.path.isdir(join(args.root, speaker_id, url, "frames")):
+            continue
         for file_name in sorted(os.listdir(join(args.root, speaker_id, url, "frames"))):
             try:
                 if file_name[-4:] == ".jpg":
@@ -233,6 +235,8 @@ for speaker_id in tqdm(sorted(os.listdir(args.root))[args.start_id:args.end_id])
                 continue
 for speaker_id in tqdm(sorted(os.listdir(args.root))[args.start_id:args.end_id]):#just 1000 user ids. 
     for url in sorted(os.listdir(join(args.root, speaker_id))):
+        if not os.path.isdir(join(args.root, speaker_id, url, "audio")):
+            continue
         for file_name in sorted(os.listdir(join(args.root, speaker_id, url, "audio"))):
             try:
                 if file_name[-4:] == ".mp3":
