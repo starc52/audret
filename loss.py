@@ -87,7 +87,7 @@ class CurriculumMining(nn.Module):
         rev_dists = dists - torch.diag(torch.add(torch.diag(dists),1))
         sorted_dist, sorted_idx = torch.sort(rev_dists, dim=1, descending=True)
         
-        idx_threshold = (B-1)-round(tau * (B-1))
+        idx_threshold = round(tau * (B-1))
         if idx_threshold == B-1:
             idx_threshold = B-2
 
@@ -104,7 +104,7 @@ class TauScheduler(object):
         self.epoch_num = 0
 
     def step(self):            
-        if self.epoch_num % 3 == 0 and self.epoch_num > 0:
+        if self.epoch_num % 2 == 0 and self.epoch_num > 0:
             self.current = int(self.current + self.current * 0.1)
         
         if self.current > self.highest:

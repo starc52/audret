@@ -30,31 +30,30 @@ class simpleDataLoader(Dataset):
 			speaker_id_path = join(root, speaker_id)
 
 			for _url in sorted(os.listdir(speaker_id_path)):
-				url_path = join(speaker_id_path, _url)
-				listOfImages=[f for f in os.listdir(url_path) if os.path.isfile(join(url_path, f)) and f[-4:]==".jpg"]
+				im_url_path = join(speaker_id_path, _url, "frames")
+				au_url_path = join(speaker_id_path, _url, "audio")
+				listOfImages=[f for f in os.listdir(im_url_path) if os.path.isfile(join(im_url_path, f)) and f[-4:]==".jpg"]
+				listOfAudios=[f for f in os.listdir(au_url_path) if os.path.isfile(join(au_url_path, f)) and f[-4:]==".npy"]
+				if listOfImages==None or listOfAudios==None:
+					missing+=1
+					continue
 				for embed_path in sorted(listOfImages):
 					speaker_arr = []
-
-					if not os.path.isdir(join(root, speaker_id, _url, embed_path[:-4])) or len(os.listdir(join(root, speaker_id, _url, embed_path[:-4])))==0:
-						missing+=1
-						continue
-					_instances = glob(join(url_path, '*/*.npy'))
 					try:
-						speaker_arr.append(_instances[random.randint(0, len(_instances)-1)])
+						speaker_arr.append(listOfAudios[random.randint(0, len(listOfAudios)-1)])
 					except:
-						print(url_path)
-						print("instances", _instances)
+						print(au_url_path)
+						print("instances", listOfAudios)
 					_dic =  {
-						'face_frame' : join(root, speaker_id, _url, embed_path),
-						'speaker_fft' : speaker_arr[0]
+						'face_frame' : join(root, speaker_id, _url, "frames", embed_path),
+						'speaker_fft' : join(root, speaker_id, _url, "audio", speaker_arr[0])
 					}
 					self.samples_path.append(_dic)
 
 		print("Missing %d, Total count %d, Split: %s"%(missing, len(self.samples_path), split))
 
 		if(split=='train'):
-		    random.shuffle(self.samples_path)
-
+			random.shuffle(self.samples_path)
 
 	def __len__(self):
 		return len(self.samples_path)
@@ -108,30 +107,30 @@ class simpleDataLoaderLossy(Dataset):
 			speaker_id_path = join(root, speaker_id)
 
 			for _url in sorted(os.listdir(speaker_id_path)):
-				url_path = join(speaker_id_path, _url)
-				listOfImages=[f for f in os.listdir(url_path) if os.path.isfile(join(url_path, f)) and f[-4:]==".jpg"]
+				im_url_path = join(speaker_id_path, _url, "frames")
+				au_url_path = join(speaker_id_path, _url, "audio")
+				listOfImages=[f for f in os.listdir(im_url_path) if os.path.isfile(join(im_url_path, f)) and f[-4:]==".jpg"]
+				listOfAudios=[f for f in os.listdir(au_url_path) if os.path.isfile(join(au_url_path, f)) and f[-4:]==".npy"]
+				if listOfImages==None or listOfAudios==None:
+					missing+=1
+					continue
 				for embed_path in sorted(listOfImages):
 					speaker_arr = []
-
-					if not os.path.isdir(join(root, speaker_id, _url, embed_path[:-4])) or len(os.listdir(join(root, speaker_id, _url, embed_path[:-4])))==0:
-						missing+=1
-						continue
-					_instances = glob(join(url_path, '*/*.npy'))
 					try:
-						speaker_arr.append(_instances[random.randint(0, len(_instances)-1)])
+						speaker_arr.append(listOfAudios[random.randint(0, len(listOfAudios)-1)])
 					except:
-						print(url_path)
-						print("instances", _instances)
+						print(au_url_path)
+						print("instances", listOfAudios)
 					_dic =  {
-						'face_frame' : join(root, speaker_id, _url, embed_path),
-						'speaker_fft' : speaker_arr[0]
+						'face_frame' : join(root, speaker_id, _url, "frames", embed_path),
+						'speaker_fft' : join(root, speaker_id, _url, "audio", speaker_arr[0])
 					}
 					self.samples_path.append(_dic)
 
 		print("Missing %d, Total count %d, Split: %s"%(missing, len(self.samples_path), split))
 
 		if(split=='train'):
-		    random.shuffle(self.samples_path)
+			random.shuffle(self.samples_path)
 
 
 	def __len__(self):
@@ -205,7 +204,7 @@ class Embeddings(Dataset):
 
 		print(_count, len(self.samples_path), split)
 		# if(split=='train'):
-		#     random.shuffle(self.samples_path)
+		#	 random.shuffle(self.samples_path)
 		self.split = split
 
 	def __len__(self):
