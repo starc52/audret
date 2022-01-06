@@ -87,9 +87,9 @@ class CurriculumMining(nn.Module):
         rev_dists = dists - torch.diag(torch.add(torch.diag(dists),1))
         sorted_dist, sorted_idx = torch.sort(rev_dists, dim=1, descending=True)
         
-        idx_threshold = round(tau * (B-1))
-        if idx_threshold == B-1:
-            idx_threshold = B-2
+        idx_threshold = round(tau * (B-1))-1
+        if idx_threshold < 0:
+            idx_threshold = 0
 
         negative_sample_idx = sorted_idx[:, idx_threshold].view(B)        
         negative_student_images = student_images[negative_sample_idx]
