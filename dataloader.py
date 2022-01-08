@@ -34,7 +34,7 @@ class simpleDataLoader(Dataset):
 				au_url_path = join(speaker_id_path, _url, "audio")
 				listOfImages=[f for f in os.listdir(im_url_path) if os.path.isfile(join(im_url_path, f)) and f[-4:]==".jpg"]
 				listOfAudios=[f for f in os.listdir(au_url_path) if os.path.isfile(join(au_url_path, f)) and f[-4:]==".npy"]
-				if listOfImages==None or listOfAudios==None:
+				if len(listOfImages)==0 or len(listOfAudios)==0:
 					missing+=1
 					continue
 				for embed_path in sorted(listOfImages):

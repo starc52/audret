@@ -91,10 +91,10 @@ class CurriculumMining(nn.Module):
         if idx_threshold < 0:
             idx_threshold = 0
         
-        hard_semi_negative = torch.argmin(torch.absolute((dists+torch.diag(torch.add(-1*torch.diag(dists),float('inf')))) - torch.unsqueeze(torch.diag(dists), 1)), dim=1)
+        hard_semi_negative = torch.argmin(torch.abs((dists+torch.diag(torch.add(-1*torch.diag(dists),float('inf')))) - torch.unsqueeze(torch.diag(dists), 1)), dim=1)
 
         negative_sample_idx = sorted_idx[:, idx_threshold].view(B)
-        fin_idx = torch.minimum(hard_semi_negative, negative_sample_idx)
+        fin_idx = torch.min(hard_semi_negative, negative_sample_idx)
         negative_student_images = student_images[fin_idx]
 
         return teacher_images, negative_student_images
