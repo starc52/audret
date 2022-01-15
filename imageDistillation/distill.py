@@ -30,7 +30,6 @@ import torch.utils.data
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 from torchvision.transforms import ToTensor
-from torchvision.io import read_image
 import tensorboardX
 import resnet50
 import pdb#; pdb.set_trace()
