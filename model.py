@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 from loss import *
-from train import train
 from senet import *
 from resnet import *
 from vggm import *
