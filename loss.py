@@ -56,7 +56,7 @@ class TauScheduler(object):
         self.epoch_num = 0
 
     def step(self):            
-        if self.epoch_num % 3 == 0 and self.epoch_num > 0:
+        if self.epoch_num % 2 == 0 and self.epoch_num > 0:
             self.current = int(self.current + self.current * 0.1)
         
         if self.current > self.highest:

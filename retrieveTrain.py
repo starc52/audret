@@ -29,6 +29,8 @@ parser.add_argument('--batch_size',default=160, type=int)
 parser.add_argument('--alpha',default=0.6, type=float)
 parser.add_argument('--log_interval',default=20, type=int)
 parser.add_argument('--no_workers',default=36, type=int)
+parser.add_argument('--compress_train', action='store_true')
+parser.add_argument('--loss_factor', default=0.25, type=float)
 parser.add_argument('--log_path',default='/home/starc52/LearnablePINs/train_log_'+str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))+"/", type=str)
 parser.add_argument('--checkpoint_path',default="/ssd_scratch/cvit/starc52/LPscheckpoints/", type=str)
 parser.add_argument('--root',default='/ssd_scratch/cvit/starc52/VoxCeleb2/dev/mp4/', type=str)
@@ -48,8 +50,11 @@ LOG_PATH = args.log_path
 CHECKPOINT_PATH = args.checkpoint_path
 
 TBoard = SummaryWriter(log_dir=args.log_path)
+if args.compress_train:
+    traindataset = simpleDataLoaderLossy(args.loss_factor, args.root, split='train')
+else:
+    traindataset = simpleDataLoader(args.root, split='train')
 
-traindataset = simpleDataLoader(args.root, split='train')
 trainloader = torch.utils.data.DataLoader(traindataset, batch_size=args.batch_size, num_workers=args.no_workers, shuffle=True)
 
 LR_INIT = 1e-2
