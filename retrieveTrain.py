@@ -30,6 +30,7 @@ parser.add_argument('--alpha',default=0.6, type=float)
 parser.add_argument('--log_interval',default=20, type=int)
 parser.add_argument('--no_workers',default=36, type=int)
 parser.add_argument('--compress_train', action='store_true')
+parser.add_argument('--semi', action='store_true')
 parser.add_argument('--loss_factor', default=0.25, type=float)
 parser.add_argument('--log_path',default='/home/starc52/LearnablePINs/train_log_'+str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))+"/", type=str)
 parser.add_argument('--checkpoint_path',default="/ssd_scratch/cvit/starc52/LPscheckpoints/", type=str)
@@ -51,7 +52,7 @@ CHECKPOINT_PATH = args.checkpoint_path
 
 TBoard = SummaryWriter(log_dir=args.log_path)
 if args.compress_train:
-    traindataset = simpleDataLoaderLossy(args.loss_factor, args.root, split='train')
+    traindataset = simpleDataLoaderLossy(args.loss_factor, args.root, split='train', semi=args.semi)
 else:
     traindataset = simpleDataLoader(args.root, split='train')
 

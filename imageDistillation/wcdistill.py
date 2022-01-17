@@ -224,7 +224,7 @@ class CompleteDistillationModel(nn.Module):
 
 criterion = nn.MSELoss()
 
-aud_vis_model_path=join('/ssd_scratch/cvit/starc52/LPscheckpoints','model_e49.pth')
+aud_vis_model_path=join('/ssd_scratch/cvit/starc52/LPscheckpoints','model_e35.pth')
 aud_vis_model = LearnablePINSenetVggVox256()
 aud_vis_model.test()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
