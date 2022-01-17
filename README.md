@@ -8,4 +8,7 @@ Procedure to use this code:
 * ```retrieveTrain.py``` will produce models and save it for the number of epochs it is run for. 
 * run ```evaluate.py``` for evaluating the dataset for the verification task. 
 * run ```evaluate_lossy.py``` for evaluation of the dataset in a reduced resolution scenario. 
-* Both evaluation scripts produce matplotlib plots providing the accuracy in various verification scenarios.  
+* Both evaluation scripts produce matplotlib plots providing the accuracy in various verification scenarios.  i
+* for training distillation model task run ```imageDistillation/wcdistill.py```
+* for evaluating distilled student model, run ```imageDistillation/evaluate_distill.ipynb```
+
