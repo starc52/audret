@@ -30,6 +30,11 @@ class simpleDataLoader(Dataset):
             for _url in sorted(os.listdir(speaker_id_path)):
                 im_url_path = join(speaker_id_path, _url, "frames")
                 au_url_path = join(speaker_id_path, _url, "audio")
+                if not os.path.isdir(im_url_path):
+                    continue
+                if not os.path.isdir(au_url_path):
+                    continue
+
                 listOfImages=[f for f in os.listdir(im_url_path) if os.path.isfile(join(im_url_path, f)) and f[-4:]==".jpg"]
                 listOfAudios=[f for f in os.listdir(au_url_path) if os.path.isfile(join(au_url_path, f)) and f[-4:]==".npy"]
                 if len(listOfImages)==0 or len(listOfAudios)==0:
@@ -96,6 +101,10 @@ class simpleDataLoaderLossy(Dataset):
             for _url in sorted(os.listdir(speaker_id_path)):
                 im_url_path = join(speaker_id_path, _url, "frames")
                 au_url_path = join(speaker_id_path, _url, "audio")
+                if not os.path.isdir(im_url_path):
+                    continue
+                if not os.path.isdir(au_url_path):
+                    continue
                 listOfImages=[f for f in os.listdir(im_url_path) if os.path.isfile(join(im_url_path, f)) and f[-4:]==".jpg"]
                 listOfAudios=[f for f in os.listdir(au_url_path) if os.path.isfile(join(au_url_path, f)) and f[-4:]==".npy"]
                 if len(listOfImages)==0 or len(listOfAudios)==0:
